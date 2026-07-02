@@ -1,5 +1,5 @@
-const { authenticateRequest, setCors } = require("../../../lib/apiKeyAuth");
-const { getProjectRaw } = require("../../../lib/controlPlane");
+import { authenticateRequest, setCors } from "../../../lib/apiKeyAuth";
+import { getProjectRaw } from "../../../lib/controlPlane";
 
 // POST /api/auth/exchange   body: { customToken }
 // header: x-api-key
@@ -8,7 +8,7 @@ const { getProjectRaw } = require("../../../lib/controlPlane");
 // Client apps use this instead of the Firebase Web SDK's
 // signInWithCustomToken — plain REST, no SDK, no domain restrictions.
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed." });
@@ -50,4 +50,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: err.message });
   }
-};
+}

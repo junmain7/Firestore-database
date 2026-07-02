@@ -1,12 +1,12 @@
-const { authenticateRequest, setCors } = require("../../../lib/apiKeyAuth");
-const { getStorageFor } = require("../../../lib/firebaseInstances");
+import { authenticateRequest, setCors } from "../../../lib/apiKeyAuth";
+import { getStorageFor } from "../../../lib/firebaseInstances";
 
 // Usage from client:
 //   POST   /api/storage/photos/me.jpg   body: { base64, contentType }  -> uploads, returns public signed URL
 //   GET    /api/storage/photos/me.jpg                                  -> returns a fresh signed download URL
 //   DELETE /api/storage/photos/me.jpg                                  -> deletes the file
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
 
@@ -63,4 +63,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: err.message || "Internal error." });
   }
-};
+}

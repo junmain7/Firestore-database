@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAuth } from "../lib/useAuth";
-import { DashboardIcon, CloudIcon, UsersIcon, LogoutIcon, ChevronDownIcon } from "./icons";
+import { DashboardIcon, CloudIcon, UsersIcon, LogoutIcon } from "./icons";
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", Icon: DashboardIcon },
@@ -114,8 +114,11 @@ export default function Layout({ active, title, children }) {
           <span className="page-title">{title || "Dashboard"}</span>
           <div className="profile-wrap" ref={menuRef}>
             <button className="profile-btn" onClick={() => setMenuOpen((v) => !v)}>
-              <span className="avatar">{initialsOf(user.email)}</span>
-              <ChevronDownIcon />
+              {user.photoURL ? (
+                <img className="avatar avatar-img" src={user.photoURL} alt={user.email} referrerPolicy="no-referrer" />
+              ) : (
+                <span className="avatar">{initialsOf(user.email)}</span>
+              )}
             </button>
             {menuOpen && (
               <div className="profile-dropdown">

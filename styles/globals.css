@@ -331,6 +331,11 @@ a { color: var(--accent); }
   flex-shrink: 0;
 }
 
+.avatar-img {
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
 .profile-dropdown {
   position: absolute;
   top: 44px;

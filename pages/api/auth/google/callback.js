@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const { getAuthFor } = require("../../../../lib/firebaseInstances");
+import jwt from "jsonwebtoken";
+import { getAuthFor } from "../../../../lib/firebaseInstances";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const { code, state, error } = req.query;
 
   if (error) {
@@ -73,4 +73,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).send("Auth broker error: " + err.message);
   }
-};
+}

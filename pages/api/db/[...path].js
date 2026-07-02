@@ -1,5 +1,5 @@
-const { authenticateRequest, setCors } = require("../../../lib/apiKeyAuth");
-const { getFirestoreFor } = require("../../../lib/firebaseInstances");
+import { authenticateRequest, setCors } from "../../../lib/apiKeyAuth";
+import { getFirestoreFor } from "../../../lib/firebaseInstances";
 
 // Usage from client:
 //   GET    /api/db/users                -> list collection (supports ?where=, ?orderBy=, ?limit=)
@@ -25,7 +25,7 @@ function buildDocRef(db, pathParts) {
   return ref;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
 
@@ -114,4 +114,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: err.message || "Internal error." });
   }
-};
+}

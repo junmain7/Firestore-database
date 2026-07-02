@@ -1,12 +1,12 @@
-const { encrypt } = require("../../../lib/crypto");
-const { verifyAdmin } = require("../../../lib/adminAuth");
-const {
+import { encrypt } from "../../../lib/crypto";
+import { verifyAdmin } from "../../../lib/adminAuth";
+import {
   createProject,
   listProjects,
   deleteProject,
-} = require("../../../lib/controlPlane");
+} from "../../../lib/controlPlane";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
 
@@ -47,4 +47,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: err.message });
   }
-};
+}

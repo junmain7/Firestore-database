@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
-const { authenticateRequest } = require("../../../../lib/apiKeyAuth");
+import jwt from "jsonwebtoken";
+import { authenticateRequest } from "../../../../lib/apiKeyAuth";
 
 // Client apps redirect their user's browser to:
 //   /api/auth/google/start?apiKey=fbgw_live_xxx&redirect_uri=https://their-app.com/auth/done
@@ -8,7 +8,7 @@ const { authenticateRequest } = require("../../../../lib/apiKeyAuth");
 // and it points at THIS gateway, not at the client app. So client apps
 // never need to be added to Google Cloud Console.
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const { apiKey, redirect_uri } = req.query;
   if (!apiKey || !redirect_uri) {
     return res.status(400).send("Missing apiKey or redirect_uri query params.");
@@ -36,4 +36,4 @@ module.exports = async function handler(req, res) {
   googleUrl.searchParams.set("prompt", "select_account");
 
   res.redirect(302, googleUrl.toString());
-};
+}
