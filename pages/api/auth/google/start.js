@@ -2,16 +2,23 @@ import jwt from "jsonwebtoken";
 import { authenticateRequest } from "../../../../lib/apiKeyAuth";
 
 // Client apps redirect their user's browser to:
-//   /api/auth/google/start?apiKey=fbgw_live_xxx&redirect_uri=https://their-app.com/auth/done
+//   /api/auth/google/start?apiKey=fbgw_live_xxx&projectId=your-project-id&redirect_uri=https://their-app.com/auth/done
+//
+// projectId is required now: one API key can reach every registered
+// Firebase project, so the client has to say which project's Auth the
+// signed-in user should land in.
 //
 // This is the ONLY place a Google "Authorized redirect URI" is needed,
 // and it points at THIS gateway, not at the client app. So client apps
 // never need to be added to Google Cloud Console.
 
 export default async function handler(req, res) {
-  const { apiKey, redirect_uri } = req.query;
+  const { apiKey, redirect_uri, projectId } = req.query;
   if (!apiKey || !redirect_uri) {
     return res.status(400).send("Missing apiKey or redirect_uri query params.");
+  }
+  if (!projectId) {
+    return res.status(400).send("Missing projectId query param — say which registered Firebase project this login is for.");
   }
 
   // Validate key (rate-limited too) before starting the OAuth dance.
@@ -22,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   const state = jwt.sign(
-    { apiKey, redirect_uri, projectId: auth.keyRecord.projectId },
+    { apiKey, redirect_uri, projectId },
     process.env.OAUTH_STATE_SECRET,
     { expiresIn: "10m" }
   );

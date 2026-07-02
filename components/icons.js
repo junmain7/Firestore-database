@@ -33,6 +33,17 @@ export function UsersIcon(props) {
   );
 }
 
+export function KeyIcon(props) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="7.5" cy="15.5" r="4.5" />
+      <path d="M10.9 12.1 20 3" />
+      <path d="M16 7l3 3" />
+      <path d="M13 4l3 3" />
+    </svg>
+  );
+}
+
 export function LogoutIcon(props) {
   return (
     <svg {...base(props)}>

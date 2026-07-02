@@ -60,8 +60,10 @@ Dashboard mein "Register a Firebase project" — us project ki service account J
 
 Agar Google login bhi chahiye us project ke liye, to **Web API key** bhi daalo (Firebase Console → Project Settings → General → Web API Key — ye public info hai, safe hai).
 
-### 8. API key generate karo har app ke liye
-Dashboard mein project select karo, key ka naam do (e.g. "Rang Tarang App"), generate karo. **Key sirf ek baar dikhega — turant copy kar lo.**
+### 8. API key generate karo
+Dashboard mein **API** tab kholo — bas key ka naam do (e.g. "Rang Tarang App") aur generate karo. Koi project select karne ki zaroorat nahi — **ek key se sabhi registered projects ka data access hota hai**, client app khud bata deta hai (SDK mein `projectId`) ki kis project se baat karni hai. **Key sirf ek baar dikhega — turant copy kar lo.**
+
+Har member (Users tab se) apni khud ki keys banata hai aur sirf apni hi keys dekh/manage kar sakta hai — admin sabki keys dekh sakta hai, "user" role sirf apni.
 
 ## Client app mein use kaise karega
 
@@ -73,6 +75,7 @@ import { GatewayClient } from "./sdk/client";
 const gw = new GatewayClient({
   baseUrl: "https://your-gateway.vercel.app",
   apiKey: "fbgw_live_xxx", // dashboard se mila hua
+  projectId: "your-registered-project-id", // dashboard mein Firebase tab se project ki id
 });
 
 // Firestore jaisa hi feel
@@ -103,10 +106,11 @@ const { url } = await gw.upload("photos/me.jpg", base64String, "image/jpeg");
 
 ## Security notes (zaroor padho)
 
-- **Admin dashboard** ab real Firebase Authentication se protected hai — koi shared secret nahi. Sirf `ADMIN_EMAILS` mein listed Google account login kar sakta hai; server har request pe Firebase ka idToken verify karta hai (`checkRevoked: true` — session revoke bhi turant reflect hota hai).
+- **Admin dashboard** ab real Firebase Authentication se protected hai — koi shared secret nahi. Sirf `ADMIN_EMAILS` mein listed ya Users tab se add kiya hua Google account login kar sakta hai; server har request pe Firebase ka idToken verify karta hai (`checkRevoked: true` — session revoke bhi turant reflect hota hai).
+- **Do roles hain**: **Admin** — Firebase projects register/manage kar sakta hai, members invite kar sakta hai, aur API keys bana sakta hai. **User** — sirf **API** tab access hota hai, apni khud ki keys bana/manage kar sakta hai (dusron ki keys nahi dikhtin).
 - **API keys** SHA-256 hash karke store hote hain — plaintext kabhi database mein nahi jaata.
+- **Ek API key ab kisi ek project se locked nahi hoti** — sabhi registered Firebase projects (Firestore/Auth/Storage) ka data access kar sakti hai. Client app request ke saath batata hai (`x-project-id` header, SDK mein `projectId`) ki kaunse project se baat karni hai.
 - **Service account JSONs** AES-256-GCM se encrypt hoke store hote hain, `MASTER_ENCRYPTION_KEY` se.
-- Har API key ek specific project se locked hota hai — ek key doosre project ka data access nahi kar sakti.
 - Rate limiting per-key hai (default 300 req/min, dashboard se change kar sakta hai `/api/admin/keys` endpoint se `rateLimitPerMinute` bhejke).
 - Firestore security rules Admin SDK ke through **bypass** ho jaate hain — matlab ab saari permission checking is gateway ke API key permissions system pe depend karti hai. Isliye per-key `collections` permission zaroor set karo agar sensitive data hai.
 - Rate-limit counter documents (`_meta_ratelimits` collection) purane hote rehte hain — Firestore Console mein TTL policy laga do us collection pe field `expiresAt` pe, taaki auto-cleanup ho jaye.

@@ -9,6 +9,9 @@ import {
 export default async function handler(req, res) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
+  if (auth.role !== "admin") {
+    return res.status(403).json({ error: "Only admins can register or manage Firebase projects." });
+  }
 
   try {
     if (req.method === "GET") {

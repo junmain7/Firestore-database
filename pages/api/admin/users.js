@@ -4,6 +4,9 @@ import { listAdminDocs, addAdminDoc, removeAdminDoc } from "../../../lib/control
 export default async function handler(req, res) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
+  if (auth.role !== "admin") {
+    return res.status(403).json({ error: "Only admins can view or manage dashboard members." });
+  }
 
   try {
     const envAllowList = (process.env.ADMIN_EMAILS || "")
@@ -13,21 +16,28 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const dbAdmins = await listAdminDocs();
-      const envUsers = envAllowList.map((email) => ({ email, source: "env" }));
+      const envUsers = envAllowList.map((email) => ({ email, source: "env", role: "admin" }));
       const dbUsers = dbAdmins
         .filter((a) => !envAllowList.includes((a.email || "").toLowerCase()))
-        .map((a) => ({ email: a.email, source: "firestore", addedBy: a.addedBy || null, createdAt: a.createdAt || null }));
+        .map((a) => ({
+          email: a.email,
+          source: "firestore",
+          role: a.role === "user" ? "user" : "admin",
+          addedBy: a.addedBy || null,
+          createdAt: a.createdAt || null,
+        }));
       return res.status(200).json({ users: [...envUsers, ...dbUsers] });
     }
 
     if (req.method === "POST") {
-      const { email } = req.body || {};
+      const { email, role } = req.body || {};
       if (!email || !email.includes("@")) return res.status(400).json({ error: "A valid email is required." });
       const normalized = email.trim().toLowerCase();
+      const normalizedRole = role === "admin" ? "admin" : "user";
       if (envAllowList.includes(normalized)) {
         return res.status(400).json({ error: "This email is already an admin (set via ADMIN_EMAILS)." });
       }
-      const result = await addAdminDoc({ email: normalized, addedBy: auth.email });
+      const result = await addAdminDoc({ email: normalized, addedBy: auth.email, role: normalizedRole });
       return res.status(201).json(result);
     }
 

@@ -7,13 +7,13 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed." });
 
-  const auth = await authenticateRequest(req, { requireCapability: "allowAuth" });
+  const auth = await authenticateRequest(req, { requireCapability: "allowAuth", requireProject: true });
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
 
   const { refreshToken } = req.body || {};
   if (!refreshToken) return res.status(400).json({ error: "Missing refreshToken." });
 
-  const project = await getProjectRaw(auth.keyRecord.projectId);
+  const project = await getProjectRaw(auth.projectId);
   if (!project?.webApiKey) {
     return res.status(400).json({ error: "This project has no webApiKey registered." });
   }

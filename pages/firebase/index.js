@@ -29,13 +29,9 @@ function buildServiceAccountJson(f) {
 }
 
 export default function FirebaseProjects() {
-  const { authorized, authedFetch } = useAuth();
+  const { authorized, authedFetch, role } = useAuth();
   const [projects, setProjects] = useState([]);
-  const [keys, setKeys] = useState([]);
   const [forms, setForms] = useState([emptyForm()]); // supports adding multiple projects at once
-  const [keyProjectId, setKeyProjectId] = useState("");
-  const [keyName, setKeyName] = useState("");
-  const [lastGeneratedKey, setLastGeneratedKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,9 +39,8 @@ export default function FirebaseProjects() {
   async function refresh() {
     setErr("");
     try {
-      const [p, k] = await Promise.all([authedFetch("/api/admin/projects"), authedFetch("/api/admin/keys")]);
+      const p = await authedFetch("/api/admin/projects");
       setProjects(p.projects || []);
-      setKeys(k.keys || []);
     } catch (e) {
       setErr(e.message);
     }
@@ -53,9 +48,20 @@ export default function FirebaseProjects() {
   }
 
   useEffect(() => {
-    if (authorized) refresh();
+    if (authorized && role === "admin") refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorized]);
+  }, [authorized, role]);
+
+  if (authorized && role && role !== "admin") {
+    return (
+      <Layout active="firebase" title="Firebase">
+        <div className="card">
+          <h3>Admins only</h3>
+          <p style={{ fontSize: 14 }}>Registering and managing Firebase projects is limited to admins. Head to the API section to create your own keys.</p>
+        </div>
+      </Layout>
+    );
+  }
 
   function updateForm(i, field, value) {
     setForms((prev) => prev.map((f, idx) => (idx === i ? { ...f, [field]: value } : f)));
@@ -105,35 +111,6 @@ export default function FirebaseProjects() {
     setBusy(true);
     try {
       await authedFetch("/api/admin/projects", { method: "DELETE", body: JSON.stringify({ id }) });
-      await refresh();
-    } catch (e) {
-      setErr(e.message);
-    }
-    setBusy(false);
-  }
-
-  async function generateKey() {
-    setBusy(true);
-    setErr("");
-    try {
-      const result = await authedFetch("/api/admin/keys", {
-        method: "POST",
-        body: JSON.stringify({ projectId: keyProjectId, name: keyName }),
-      });
-      setLastGeneratedKey(result.apiKey);
-      setKeyName("");
-      await refresh();
-    } catch (e) {
-      setErr(e.message);
-    }
-    setBusy(false);
-  }
-
-  async function revoke(keyHash) {
-    if (!confirm("Revoke this key? Apps using it stop working immediately.")) return;
-    setBusy(true);
-    try {
-      await authedFetch("/api/admin/keys", { method: "DELETE", body: JSON.stringify({ keyHash }) });
       await refresh();
     } catch (e) {
       setErr(e.message);
@@ -254,39 +231,10 @@ export default function FirebaseProjects() {
       </div>
 
       <div className="card">
-        <h3>Generate API key</h3>
-        <select className="field" value={keyProjectId} onChange={(e) => setKeyProjectId(e.target.value)}>
-          <option value="">Select project…</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
-        <input className="field" placeholder="Key name — e.g. Rang Tarang app" value={keyName} onChange={(e) => setKeyName(e.target.value)} />
-        <button className="btn" disabled={busy || !keyProjectId} onClick={generateKey}>Generate key</button>
-        {lastGeneratedKey && (
-          <div className="keybox">
-            <span className="label">Copy now — shown once only</span>
-            {lastGeneratedKey}
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <h3>Active keys</h3>
-        {!loading && keys.length === 0 && <div className="empty">No keys yet.</div>}
-        {keys.map((k) => (
-          <div className="row" key={k.keyHash}>
-            <div>
-              <div className="row-title">{k.name}</div>
-              <div className="row-sub">{k.projectId}</div>
-            </div>
-            {k.revoked ? (
-              <span className="badge off">revoked</span>
-            ) : (
-              <button className="btn danger-ghost" onClick={() => revoke(k.keyHash)}>Revoke</button>
-            )}
-          </div>
-        ))}
+        <h3>API keys</h3>
+        <p style={{ fontSize: 13, color: "var(--muted)" }}>
+          Key creation moved to the <b>API</b> tab — a key now works across every project registered here, so it doesn't need to be tied to one project anymore.
+        </p>
       </div>
     </Layout>
   );

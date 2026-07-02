@@ -16,13 +16,13 @@ export default async function handler(req, res) {
   }
   const filePath = pathParts.join("/");
 
-  const auth = await authenticateRequest(req, { requireCapability: "allowStorage" });
+  const auth = await authenticateRequest(req, { requireCapability: "allowStorage", requireProject: true });
   if (!auth.ok) {
     return res.status(auth.status).json({ error: auth.message });
   }
 
   try {
-    const storage = await getStorageFor(auth.keyRecord.projectId);
+    const storage = await getStorageFor(auth.projectId);
     const bucket = storage.bucket();
     const file = bucket.file(filePath);
 

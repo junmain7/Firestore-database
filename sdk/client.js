@@ -7,6 +7,7 @@
  *   const gw = new GatewayClient({
  *     baseUrl: "https://your-gateway.vercel.app",
  *     apiKey: "fbgw_live_xxx",
+ *     projectId: "your-registered-project-id", // which Firebase project this app talks to
  *   });
  *
  *   const { results } = await gw.collection("users").get();
@@ -81,9 +82,10 @@ class DocRef {
 }
 
 class GatewayClient {
-  constructor({ baseUrl, apiKey }) {
+  constructor({ baseUrl, apiKey, projectId }) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.apiKey = apiKey;
+    this.projectId = projectId;
   }
 
   async _request(method, path, body) {
@@ -92,6 +94,7 @@ class GatewayClient {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": this.apiKey,
+        "x-project-id": this.projectId,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -112,6 +115,7 @@ class GatewayClient {
   signInWithGoogleRedirect(redirectUri) {
     const url = new URL(`${this.baseUrl}/api/auth/google/start`);
     url.searchParams.set("apiKey", this.apiKey);
+    url.searchParams.set("projectId", this.projectId);
     url.searchParams.set("redirect_uri", redirectUri);
     if (typeof window !== "undefined") window.location.href = url.toString();
     return url.toString();

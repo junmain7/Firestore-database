@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAuth } from "../lib/useAuth";
-import { DashboardIcon, CloudIcon, UsersIcon, LogoutIcon } from "./icons";
+import { DashboardIcon, CloudIcon, UsersIcon, KeyIcon, LogoutIcon } from "./icons";
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", href: "/dashboard", Icon: DashboardIcon },
-  { key: "firebase", label: "Firebase", href: "/firebase", Icon: CloudIcon },
-  { key: "users", label: "Users", href: "/users", Icon: UsersIcon },
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", Icon: DashboardIcon, adminOnly: false },
+  { key: "firebase", label: "Firebase", href: "/firebase", Icon: CloudIcon, adminOnly: true },
+  { key: "keys", label: "API", href: "/keys", Icon: KeyIcon, adminOnly: false },
+  { key: "users", label: "Users", href: "/users", Icon: UsersIcon, adminOnly: true },
 ];
 
 function initialsOf(email) {
@@ -17,9 +18,10 @@ function initialsOf(email) {
 
 export default function Layout({ active, title, children }) {
   const router = useRouter();
-  const { user, authLoading, checkingAuthz, authorized, forbidden, logout } = useAuth();
+  const { user, authLoading, checkingAuthz, authorized, forbidden, role, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || role === "admin");
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -94,7 +96,7 @@ export default function Layout({ active, title, children }) {
           <span className="brand">firebase-gateway</span>
         </div>
         <nav className="nav-list">
-          {NAV_ITEMS.map(({ key, label, href, Icon }) => (
+          {visibleNavItems.map(({ key, label, href, Icon }) => (
             <Link key={key} href={href} className={`nav-item${active === key ? " active" : ""}`}>
               <Icon />
               <span>{label}</span>
@@ -135,7 +137,7 @@ export default function Layout({ active, title, children }) {
       </div>
 
       <nav className="bottom-nav">
-        {NAV_ITEMS.map(({ key, label, href, Icon }) => (
+        {visibleNavItems.map(({ key, label, href, Icon }) => (
           <Link key={key} href={href} className={active === key ? "active" : ""}>
             <span className="icon"><Icon width={20} height={20} /></span>
             <span>{label}</span>

@@ -35,13 +35,13 @@ export default async function handler(req, res) {
   }
   const rootCollection = getCollectionRoot(pathParts);
 
-  const auth = await authenticateRequest(req, { requireCollection: rootCollection });
+  const auth = await authenticateRequest(req, { requireCollection: rootCollection, requireProject: true });
   if (!auth.ok) {
     return res.status(auth.status).json({ error: auth.message });
   }
 
   try {
-    const db = await getFirestoreFor(auth.keyRecord.projectId);
+    const db = await getFirestoreFor(auth.projectId);
     const isEvenDepth = pathParts.length % 2 === 0; // even length = points to a document
 
     if (req.method === "GET") {
