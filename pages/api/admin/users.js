@@ -1,7 +1,7 @@
-const { verifyAdmin } = require("../../../lib/adminAuth");
-const { listAdminDocs, addAdminDoc, removeAdminDoc } = require("../../../lib/controlPlane");
+import { verifyAdmin } from "../../../lib/adminAuth";
+import { listAdminDocs, addAdminDoc, removeAdminDoc } from "../../../lib/controlPlane";
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
 
@@ -50,4 +50,4 @@ module.exports = async function handler(req, res) {
     console.error(err);
     return res.status(500).json({ error: err.message });
   }
-};
+}
