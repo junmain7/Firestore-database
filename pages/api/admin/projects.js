@@ -1,21 +1,14 @@
 const { encrypt } = require("../../../lib/crypto");
+const { verifyAdmin } = require("../../../lib/adminAuth");
 const {
   createProject,
   listProjects,
   deleteProject,
 } = require("../../../lib/controlPlane");
 
-function checkAdmin(req, res) {
-  const secret = req.headers["x-admin-secret"];
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    res.status(401).json({ error: "Invalid admin secret." });
-    return false;
-  }
-  return true;
-}
-
 module.exports = async function handler(req, res) {
-  if (!checkAdmin(req, res)) return;
+  const auth = await verifyAdmin(req);
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
 
   try {
     if (req.method === "GET") {
