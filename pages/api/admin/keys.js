@@ -1,0 +1,62 @@
+const { generateApiKey, sha256Hex } = require("../../../lib/crypto");
+const {
+  createApiKey,
+  listApiKeys,
+  revokeApiKey,
+} = require("../../../lib/controlPlane");
+
+function checkAdmin(req, res) {
+  const secret = req.headers["x-admin-secret"];
+  if (!secret || secret !== process.env.ADMIN_SECRET) {
+    res.status(401).json({ error: "Invalid admin secret." });
+    return false;
+  }
+  return true;
+}
+
+module.exports = async function handler(req, res) {
+  if (!checkAdmin(req, res)) return;
+
+  try {
+    if (req.method === "GET") {
+      const keys = await listApiKeys();
+      return res.status(200).json({ keys });
+    }
+
+    if (req.method === "POST") {
+      const { projectId, name, permissions, rateLimitPerMinute } = req.body || {};
+      if (!projectId) return res.status(400).json({ error: "projectId required." });
+
+      const plainKey = generateApiKey();
+      const keyHash = sha256Hex(plainKey);
+
+      await createApiKey({
+        keyHash,
+        projectId,
+        name,
+        permissions: permissions || {
+          collections: ["*"],
+          allowAuth: true,
+          allowStorage: true,
+        },
+        rateLimitPerMinute,
+      });
+
+      // The plaintext key is only ever shown ONCE, right here.
+      return res.status(201).json({ apiKey: plainKey, projectId, name });
+    }
+
+    if (req.method === "DELETE") {
+      const { apiKey, keyHash } = req.body || {};
+      const hash = keyHash || (apiKey ? sha256Hex(apiKey) : null);
+      if (!hash) return res.status(400).json({ error: "apiKey or keyHash required." });
+      await revokeApiKey(hash);
+      return res.status(200).json({ revoked: true });
+    }
+
+    return res.status(405).json({ error: "Method not allowed." });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
