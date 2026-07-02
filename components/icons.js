@@ -54,6 +54,34 @@ export function LogoutIcon(props) {
   );
 }
 
+export function MenuIcon(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 6h18" />
+      <path d="M3 12h18" />
+      <path d="M3 18h18" />
+    </svg>
+  );
+}
+
+export function CloseIcon(props) {
+  return (
+    <svg {...base(props)}>
+      <path d="M18 6 6 18" />
+      <path d="M6 6l12 12" />
+    </svg>
+  );
+}
+
+export function CopyIcon(props) {
+  return (
+    <svg {...base(props)}>
+      <rect x="9" y="9" width="12" height="12" rx="1.5" />
+      <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon(props) {
   return (
     <svg {...base({ width: 14, height: 14, ...props })}>

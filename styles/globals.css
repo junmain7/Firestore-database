@@ -238,6 +238,14 @@ a { color: var(--accent); }
   padding: 6px 8px 20px;
 }
 
+.sidebar-close { display: none; margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; }
+
+.sidebar-backdrop { display: none; }
+
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+
+.menu-btn { display: none; background: none; border: none; color: var(--text); cursor: pointer; padding: 4px; }
+
 .nav-list {
   display: flex;
   flex-direction: column;
@@ -476,9 +484,96 @@ a { color: var(--accent); }
 .bottom-nav a.active { color: var(--accent); }
 
 @media (max-width: 767px) {
-  .sidebar { display: none; }
+  .sidebar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 2px 0 16px rgba(0,0,0,0.35);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close { display: block; }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 30;
+  }
+  .menu-btn { display: inline-flex; }
   .bottom-nav { display: flex; }
   .main-content { padding-bottom: 84px; }
   .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .stat-value { font-size: 18px; }
+}
+
+/* ---------------- API docs panel ---------------- */
+
+.doc-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+}
+
+.doc-tab {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+
+.doc-tab.active { background: var(--accent-dim); color: var(--accent); border-color: transparent; }
+
+.doc-tab-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 14px 0 6px;
+}
+
+.codeblock {
+  position: relative;
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.codeblock pre {
+  margin: 0;
+  padding: 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #d1d9e0;
+  white-space: pre;
+}
+
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
 }

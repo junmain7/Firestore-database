@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useAuth } from "../lib/useAuth";
-import { DashboardIcon, CloudIcon, UsersIcon, KeyIcon, LogoutIcon } from "./icons";
+import { DashboardIcon, CloudIcon, UsersIcon, KeyIcon, LogoutIcon, MenuIcon, CloseIcon } from "./icons";
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", href: "/dashboard", Icon: DashboardIcon, adminOnly: false },
-  { key: "firebase", label: "Firebase", href: "/firebase", Icon: CloudIcon, adminOnly: true },
-  { key: "keys", label: "API", href: "/keys", Icon: KeyIcon, adminOnly: false },
-  { key: "users", label: "Users", href: "/users", Icon: UsersIcon, adminOnly: true },
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", Icon: DashboardIcon, adminOnly: false, bottomNav: true },
+  { key: "firebase", label: "Firebase", href: "/firebase", Icon: CloudIcon, adminOnly: true, bottomNav: true },
+  { key: "keys", label: "API", href: "/keys", Icon: KeyIcon, adminOnly: false, bottomNav: false },
+  { key: "users", label: "Users", href: "/users", Icon: UsersIcon, adminOnly: true, bottomNav: true },
 ];
 
 function initialsOf(email) {
@@ -20,8 +20,10 @@ export default function Layout({ active, title, children }) {
   const router = useRouter();
   const { user, authLoading, checkingAuthz, authorized, forbidden, role, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const menuRef = useRef(null);
   const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || role === "admin");
+  const bottomNavItems = visibleNavItems.filter((item) => item.bottomNav);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -34,6 +36,10 @@ export default function Layout({ active, title, children }) {
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [router.pathname]);
 
   async function handleLogout() {
     setMenuOpen(false);
@@ -90,10 +96,15 @@ export default function Layout({ active, title, children }) {
   // ---- Authorized: full app shell ----
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
+
+      <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sidebar-brand">
           <span className="dot" />
           <span className="brand">firebase-gateway</span>
+          <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>
+            <CloseIcon width={18} height={18} />
+          </button>
         </div>
         <nav className="nav-list">
           {visibleNavItems.map(({ key, label, href, Icon }) => (
@@ -113,7 +124,12 @@ export default function Layout({ active, title, children }) {
 
       <div className="main-col">
         <header className="app-topbar">
-          <span className="page-title">{title || "Dashboard"}</span>
+          <div className="topbar-left">
+            <button className="menu-btn" onClick={() => setSidebarOpen(true)}>
+              <MenuIcon width={22} height={22} />
+            </button>
+            <span className="page-title">{title || "Dashboard"}</span>
+          </div>
           <div className="profile-wrap" ref={menuRef}>
             <button className="profile-btn" onClick={() => setMenuOpen((v) => !v)}>
               {user.photoURL ? (
@@ -137,7 +153,7 @@ export default function Layout({ active, title, children }) {
       </div>
 
       <nav className="bottom-nav">
-        {visibleNavItems.map(({ key, label, href, Icon }) => (
+        {bottomNavItems.map(({ key, label, href, Icon }) => (
           <Link key={key} href={href} className={active === key ? "active" : ""}>
             <span className="icon"><Icon width={20} height={20} /></span>
             <span>{label}</span>
