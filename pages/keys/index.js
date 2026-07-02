@@ -24,6 +24,7 @@ function CodeBlock({ code }) {
 
 function DocsPanel({ baseUrl }) {
   const [tab, setTab] = useState("Get Started");
+  const [copiedAll, setCopiedAll] = useState(false);
 
   const snippets = {
     "Get Started": `// 1. Copy sdk/client.js into your app
@@ -87,12 +88,24 @@ Body: { "active": false }   // merges into existing doc`,
     "Query": `GET ${baseUrl}/api/db/users?whereJson=[["active","==",true]]&orderBy=createdAt&orderDir=desc&limit=10`,
   };
 
+  function copyAll() {
+    const all = TABS.map(
+      (t) => `// ---- ${t} ----\n${snippets[t]}\n\n/* Raw HTTP */\n${rawSnippets[t]}`
+    ).join("\n\n");
+    navigator.clipboard.writeText(all);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
+  }
+
   return (
     <div className="card">
       <h3>How to use</h3>
       <p style={{ fontSize: 13, color: "var(--muted)", marginTop: -6 }}>
         Drop <code>sdk/client.js</code> into your app. It talks to Firestore through this gateway — collections, docs, get/add/set/delete — same feel as the Firebase SDK, no Firebase config needed on your app side.
       </p>
+      <button className="btn ghost" style={{ marginBottom: 12 }} onClick={copyAll}>
+        {copiedAll ? "Copied all ✓" : "Copy all (Get + Read + Add + Update + Delete + Query)"}
+      </button>
       <div className="doc-tabs">
         {TABS.map((t) => (
           <button key={t} className={`doc-tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
@@ -109,7 +122,7 @@ Body: { "active": false }   // merges into existing doc`,
 }
 
 export default function ApiKeys() {
-  const { authorized, authedFetch, role, user } = useAuth();
+  const { authorized, authedFetch, role, user, keyAccess } = useAuth();
   const [keys, setKeys] = useState([]);
   const [keyName, setKeyName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
@@ -192,11 +205,11 @@ export default function ApiKeys() {
 
       {view === "docs" ? (
         <DocsPanel baseUrl={baseUrl} />
-      ) : !isAdmin ? (
+      ) : !isAdmin && !keyAccess ? (
         <div className="card">
-          <h3>Keys are admin-managed</h3>
+          <h3>Key access not granted yet</h3>
           <p style={{ fontSize: 13, color: "var(--muted)" }}>
-            Only an admin can create or enable/disable API keys. Ask an admin for a key.
+            Ask an admin to grant key access from the Users tab — once granted, you can create your own API key here.
           </p>
         </div>
       ) : (
@@ -204,7 +217,9 @@ export default function ApiKeys() {
           <div className="card">
             <h3>Generate API key</h3>
             <p style={{ fontSize: 13, color: "var(--muted)", marginTop: -6 }}>
-              Works across every Firebase project registered on this gateway. Give it a name and, optionally, whoever it's for.
+              {isAdmin
+                ? "Works across every Firebase project registered on this gateway. Leave owner blank to keep it under your own name."
+                : "This key will be created under your account — you can pause or revoke it anytime."}
             </p>
             <input
               className="field"
@@ -212,12 +227,14 @@ export default function ApiKeys() {
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
             />
-            <input
-              className="field"
-              placeholder="Owner / customer email (optional)"
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-            />
+            {isAdmin && (
+              <input
+                className="field"
+                placeholder="Owner / customer email (optional)"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+              />
+            )}
             <button className="btn" disabled={busy} onClick={generateKey}>Generate key</button>
             {lastGeneratedKey && (
               <div className="keybox">
@@ -228,13 +245,13 @@ export default function ApiKeys() {
           </div>
 
           <div className="card">
-            <h3>All API keys</h3>
+            <h3>{isAdmin ? "All API keys" : "Your API keys"}</h3>
             {!loading && keys.length === 0 && <div className="empty">No keys yet.</div>}
             {keys.map((k) => (
               <div className="row" key={k.keyHash}>
                 <div>
                   <div className="row-title">{k.name}</div>
-                  <div className="row-sub">{k.ownerEmail || "unassigned"}</div>
+                  <div className="row-sub">{isAdmin ? (k.ownerEmail || "unassigned") : "you"}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   {k.revoked ? (

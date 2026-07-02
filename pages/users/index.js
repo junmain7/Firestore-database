@@ -82,6 +82,30 @@ export default function Users() {
     setBusy(false);
   }
 
+  async function toggleKeyAccess(email, current) {
+    setBusy(true);
+    setErr("");
+    try {
+      await authedFetch("/api/admin/users", { method: "PATCH", body: JSON.stringify({ email, keyAccess: !current }) });
+      await refresh();
+    } catch (e) {
+      setErr(e.message);
+    }
+    setBusy(false);
+  }
+
+  async function toggleDisabled(email, current) {
+    setBusy(true);
+    setErr("");
+    try {
+      await authedFetch("/api/admin/users", { method: "PATCH", body: JSON.stringify({ email, disabled: !current }) });
+      await refresh();
+    } catch (e) {
+      setErr(e.message);
+    }
+    setBusy(false);
+  }
+
   return (
     <Layout active="users" title="Users">
       {err && <div className="alert">{err}</div>}
@@ -145,10 +169,24 @@ export default function Users() {
               <div className="row-title">{u.email}{u.email === user?.email?.toLowerCase() ? " (you)" : ""}</div>
               <div className="row-sub">{u.source === "env" ? "set via ADMIN_EMAILS" : "added from dashboard"}</div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
               <span className="badge">{u.role === "user" ? "user" : "admin"}</span>
+              {u.source !== "env" && u.role === "user" && (
+                <>
+                  <span className={`badge${u.keyAccess ? "" : " off"}`}>{u.keyAccess ? "key access on" : "key access off"}</span>
+                  <button className="btn ghost" disabled={busy} onClick={() => toggleKeyAccess(u.email, u.keyAccess)}>
+                    {u.keyAccess ? "Revoke key access" : "Grant key access"}
+                  </button>
+                </>
+              )}
               {u.source !== "env" && (
-                <button className="btn danger-ghost" onClick={() => removeUser(u.email)}>Remove</button>
+                <>
+                  <span className={`badge${u.disabled ? " off" : ""}`}>{u.disabled ? "disabled" : "active"}</span>
+                  <button className="btn ghost" disabled={busy} onClick={() => toggleDisabled(u.email, u.disabled)}>
+                    {u.disabled ? "Enable" : "Disable"}
+                  </button>
+                  <button className="btn danger-ghost" onClick={() => removeUser(u.email)}>Remove</button>
+                </>
               )}
             </div>
           </div>
