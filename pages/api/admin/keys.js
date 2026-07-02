@@ -4,25 +4,28 @@ import {
   createApiKey,
   listApiKeys,
   revokeApiKey,
+  setKeyEnabled,
 } from "../../../lib/controlPlane";
 
 export default async function handler(req, res) {
   const auth = await verifyAdmin(req);
   if (!auth.ok) return res.status(auth.status).json({ error: auth.message });
 
-  try {
-    // Admins can see every key (for oversight); a "user" only ever sees
-    // and manages the keys they personally created — each person's keys
-    // are their own, separate from everyone else's.
-    const scopeToSelf = auth.role !== "admin";
+  const isAdmin = auth.role === "admin";
 
+  try {
     if (req.method === "GET") {
-      const keys = await listApiKeys(scopeToSelf ? auth.email : undefined);
+      // Only admins manage keys. Everyone else gets an empty list —
+      // key creation/enable/disable is an admin-only control panel.
+      if (!isAdmin) return res.status(200).json({ keys: [] });
+      const keys = await listApiKeys();
       return res.status(200).json({ keys });
     }
 
     if (req.method === "POST") {
-      const { name, permissions, rateLimitPerMinute } = req.body || {};
+      if (!isAdmin) return res.status(403).json({ error: "Only admins can create API keys." });
+
+      const { name, ownerEmail, permissions, rateLimitPerMinute } = req.body || {};
 
       const plainKey = generateApiKey();
       const keyHash = sha256Hex(plainKey);
@@ -30,7 +33,7 @@ export default async function handler(req, res) {
       await createApiKey({
         keyHash,
         name,
-        ownerEmail: auth.email,
+        ownerEmail: ownerEmail || auth.email,
         permissions: permissions || {
           collections: ["*"],
           allowAuth: true,
@@ -40,21 +43,27 @@ export default async function handler(req, res) {
       });
 
       // The plaintext key is only ever shown ONCE, right here.
-      // It works across every registered Firebase project — no project
-      // selection needed at creation time.
       return res.status(201).json({ apiKey: plainKey, name });
     }
 
+    if (req.method === "PATCH") {
+      if (!isAdmin) return res.status(403).json({ error: "Only admins can enable/disable API keys." });
+
+      const { keyHash, apiKey, enabled } = req.body || {};
+      const hash = keyHash || (apiKey ? sha256Hex(apiKey) : null);
+      if (!hash) return res.status(400).json({ error: "apiKey or keyHash required." });
+      if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled (boolean) required." });
+
+      await setKeyEnabled(hash, enabled);
+      return res.status(200).json({ disabled: !enabled });
+    }
+
     if (req.method === "DELETE") {
+      if (!isAdmin) return res.status(403).json({ error: "Only admins can revoke API keys." });
+
       const { apiKey, keyHash } = req.body || {};
       const hash = keyHash || (apiKey ? sha256Hex(apiKey) : null);
       if (!hash) return res.status(400).json({ error: "apiKey or keyHash required." });
-
-      if (scopeToSelf) {
-        const existing = await listApiKeys(auth.email);
-        const owns = existing.some((k) => k.keyHash === hash);
-        if (!owns) return res.status(403).json({ error: "You can only revoke your own API keys." });
-      }
 
       await revokeApiKey(hash);
       return res.status(200).json({ revoked: true });

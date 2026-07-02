@@ -112,12 +112,14 @@ export default function ApiKeys() {
   const { authorized, authedFetch, role, user } = useAuth();
   const [keys, setKeys] = useState([]);
   const [keyName, setKeyName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
   const [lastGeneratedKey, setLastGeneratedKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("keys"); // "keys" | "docs"
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const isAdmin = role === "admin";
 
   async function refresh() {
     setErr("");
@@ -141,10 +143,11 @@ export default function ApiKeys() {
     try {
       const result = await authedFetch("/api/admin/keys", {
         method: "POST",
-        body: JSON.stringify({ name: keyName }),
+        body: JSON.stringify({ name: keyName, ownerEmail: ownerEmail || undefined }),
       });
       setLastGeneratedKey(result.apiKey);
       setKeyName("");
+      setOwnerEmail("");
       await refresh();
     } catch (e) {
       setErr(e.message);
@@ -153,7 +156,7 @@ export default function ApiKeys() {
   }
 
   async function revoke(keyHash) {
-    if (!confirm("Revoke this key? Apps using it stop working immediately.")) return;
+    if (!confirm("Revoke this key permanently? It can never be re-enabled.")) return;
     setBusy(true);
     try {
       await authedFetch("/api/admin/keys", { method: "DELETE", body: JSON.stringify({ keyHash }) });
@@ -164,7 +167,19 @@ export default function ApiKeys() {
     setBusy(false);
   }
 
-  const isAdmin = role === "admin";
+  async function toggleEnabled(keyHash, currentlyDisabled) {
+    setBusy(true);
+    try {
+      await authedFetch("/api/admin/keys", {
+        method: "PATCH",
+        body: JSON.stringify({ keyHash, enabled: currentlyDisabled }),
+      });
+      await refresh();
+    } catch (e) {
+      setErr(e.message);
+    }
+    setBusy(false);
+  }
 
   return (
     <Layout active="keys" title="API">
@@ -177,18 +192,31 @@ export default function ApiKeys() {
 
       {view === "docs" ? (
         <DocsPanel baseUrl={baseUrl} />
+      ) : !isAdmin ? (
+        <div className="card">
+          <h3>Keys are admin-managed</h3>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>
+            Only an admin can create or enable/disable API keys. Ask an admin for a key.
+          </p>
+        </div>
       ) : (
         <>
           <div className="card">
             <h3>Generate API key</h3>
             <p style={{ fontSize: 13, color: "var(--muted)", marginTop: -6 }}>
-              No project selection needed — this key works across every Firebase project registered on this gateway, so give it a name that says which app will use it.
+              Works across every Firebase project registered on this gateway. Give it a name and, optionally, whoever it's for.
             </p>
             <input
               className="field"
               placeholder="Key name — e.g. Rang Tarang app"
               value={keyName}
               onChange={(e) => setKeyName(e.target.value)}
+            />
+            <input
+              className="field"
+              placeholder="Owner / customer email (optional)"
+              value={ownerEmail}
+              onChange={(e) => setOwnerEmail(e.target.value)}
             />
             <button className="btn" disabled={busy} onClick={generateKey}>Generate key</button>
             {lastGeneratedKey && (
@@ -200,26 +228,27 @@ export default function ApiKeys() {
           </div>
 
           <div className="card">
-            <h3>{isAdmin ? "All API keys" : "Your API keys"}</h3>
-            {!isAdmin && (
-              <p style={{ fontSize: 13, color: "var(--muted)", marginTop: -6 }}>
-                You only see keys you created — everyone's keys are kept separate.
-              </p>
-            )}
+            <h3>All API keys</h3>
             {!loading && keys.length === 0 && <div className="empty">No keys yet.</div>}
             {keys.map((k) => (
               <div className="row" key={k.keyHash}>
                 <div>
                   <div className="row-title">{k.name}</div>
-                  <div className="row-sub">
-                    {isAdmin ? (k.ownerEmail === user?.email?.toLowerCase() ? "you" : k.ownerEmail || "unknown") : "you"}
-                  </div>
+                  <div className="row-sub">{k.ownerEmail || "unassigned"}</div>
                 </div>
-                {k.revoked ? (
-                  <span className="badge off">revoked</span>
-                ) : (
-                  <button className="btn danger-ghost" onClick={() => revoke(k.keyHash)}>Revoke</button>
-                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {k.revoked ? (
+                    <span className="badge off">revoked</span>
+                  ) : (
+                    <>
+                      <span className={`badge${k.disabled ? " off" : ""}`}>{k.disabled ? "disabled" : "active"}</span>
+                      <button className="btn ghost" disabled={busy} onClick={() => toggleEnabled(k.keyHash, k.disabled)}>
+                        {k.disabled ? "Enable" : "Disable"}
+                      </button>
+                      <button className="btn danger-ghost" disabled={busy} onClick={() => revoke(k.keyHash)}>Revoke</button>
+                    </>
+                  )}
+                </div>
               </div>
             ))}
           </div>
