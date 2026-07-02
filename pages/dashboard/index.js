@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
 
-const box = { border: "1px solid #333", borderRadius: 10, padding: 14, marginBottom: 14, background: "#111" };
-const input = { width: "100%", padding: 10, marginBottom: 8, borderRadius: 6, border: "1px solid #444", background: "#000", color: "#fff", boxSizing: "border-box" };
-const btn = { padding: "10px 14px", borderRadius: 6, border: "none", background: "#4f7cff", color: "#fff", fontWeight: 600, marginTop: 4 };
-const page = { maxWidth: 480, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif", background: "#000", color: "#fff", minHeight: "100vh" };
-
 export default function Dashboard() {
   const [secret, setSecret] = useState("");
   const [unlocked, setUnlocked] = useState(false);
@@ -54,11 +49,19 @@ export default function Dashboard() {
   }
 
   function unlock() {
+    if (!secret) return;
     localStorage.setItem("gw_admin_secret", secret);
     setUnlocked(true);
   }
 
+  function lock() {
+    localStorage.removeItem("gw_admin_secret");
+    setUnlocked(false);
+    setSecret("");
+  }
+
   async function addProject() {
+    if (!newProjectName || !newSaJson) return setErr("Name and service account JSON are required.");
     setBusy(true);
     setErr("");
     try {
@@ -77,7 +80,7 @@ export default function Dashboard() {
   }
 
   async function removeProject(id) {
-    if (!confirm(`Delete project ${id}? This does not delete the Firebase project itself, only unregisters it here.`)) return;
+    if (!confirm(`Remove ${id}? This only unregisters it here — the Firebase project itself is untouched.`)) return;
     setBusy(true);
     try {
       await call("/api/admin/projects", { method: "DELETE", body: JSON.stringify({ id }) });
@@ -106,7 +109,7 @@ export default function Dashboard() {
   }
 
   async function revoke(keyHash) {
-    if (!confirm("Revoke this key? Apps using it will stop working immediately.")) return;
+    if (!confirm("Revoke this key? Apps using it stop working immediately.")) return;
     setBusy(true);
     try {
       await call("/api/admin/keys", { method: "DELETE", body: JSON.stringify({ keyHash }) });
@@ -119,69 +122,98 @@ export default function Dashboard() {
 
   if (!unlocked) {
     return (
-      <div style={page}>
-        <h2>🔐 Gateway Dashboard</h2>
-        <div style={box}>
-          <input style={input} type="password" placeholder="Admin secret" value={secret} onChange={(e) => setSecret(e.target.value)} />
-          <button style={btn} onClick={unlock}>Unlock</button>
+      <div className="wrap">
+        <div className="topbar">
+          <span className="dot" />
+          <span className="brand">firebase-gateway</span>
+        </div>
+        <div className="card">
+          <h3>Unlock dashboard</h3>
+          <input
+            className="field mono"
+            type="password"
+            placeholder="Admin secret"
+            value={secret}
+            onChange={(e) => setSecret(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && unlock()}
+          />
+          <button className="btn" onClick={unlock}>Unlock</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={page}>
-      <h2>🔥 Firebase Gateway</h2>
-      {err && <div style={{ ...box, borderColor: "#ff4f4f", color: "#ff8a8a" }}>{err}</div>}
-
-      <div style={box}>
-        <h3>➕ Register a Firebase project</h3>
-        <input style={input} placeholder="Display name (e.g. Joysiddhi Puja)" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} />
-        <textarea style={{ ...input, height: 100 }} placeholder="Paste service account JSON here" value={newSaJson} onChange={(e) => setNewSaJson(e.target.value)} />
-        <input style={input} placeholder="Web API key (optional, enables Google login token exchange)" value={newWebApiKey} onChange={(e) => setNewWebApiKey(e.target.value)} />
-        <button style={btn} disabled={busy} onClick={addProject}>Register project</button>
+    <div className="wrap">
+      <div className="topbar">
+        <span className="dot" />
+        <span className="brand">firebase-gateway</span>
+        <span className="brand-sub">
+          {projects.length} project{projects.length !== 1 ? "s" : ""} · {keys.filter((k) => !k.revoked).length} active key{keys.filter((k) => !k.revoked).length !== 1 ? "s" : ""}
+        </span>
       </div>
 
-      <div style={box}>
-        <h3>📦 Registered projects</h3>
-        {projects.length === 0 && <p>None yet.</p>}
+      {err && <div className="alert">{err}</div>}
+
+      <div className="card">
+        <h3>Register a Firebase project</h3>
+        <input className="field" placeholder="Display name — e.g. Joysiddhi Puja" value={newProjectName} onChange={(e) => setNewProjectName(e.target.value)} />
+        <textarea className="field mono" placeholder="Paste service account JSON" value={newSaJson} onChange={(e) => setNewSaJson(e.target.value)} />
+        <input className="field mono" placeholder="Web API key (optional — enables Google login)" value={newWebApiKey} onChange={(e) => setNewWebApiKey(e.target.value)} />
+        <button className="btn" disabled={busy} onClick={addProject}>Register project</button>
+      </div>
+
+      <div className="card">
+        <h3>Registered projects</h3>
+        {projects.length === 0 && <div className="empty">Nothing registered yet.</div>}
         {projects.map((p) => (
-          <div key={p.id} style={{ padding: 8, borderBottom: "1px solid #333" }}>
-            <b>{p.name}</b> <span style={{ color: "#888" }}>({p.id})</span>
-            <button style={{ ...btn, background: "#552222", marginLeft: 8, padding: "4px 8px" }} onClick={() => removeProject(p.id)}>Remove</button>
+          <div className="row" key={p.id}>
+            <div>
+              <div className="row-title">{p.name}</div>
+              <div className="row-sub">{p.id}</div>
+            </div>
+            <button className="btn danger-ghost" onClick={() => removeProject(p.id)}>Remove</button>
           </div>
         ))}
       </div>
 
-      <div style={box}>
-        <h3>🔑 Generate API key</h3>
-        <select style={input} value={keyProjectId} onChange={(e) => setKeyProjectId(e.target.value)}>
+      <div className="card">
+        <h3>Generate API key</h3>
+        <select className="field" value={keyProjectId} onChange={(e) => setKeyProjectId(e.target.value)}>
           <option value="">Select project…</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
-        <input style={input} placeholder="Key name (e.g. Rang Tarang app)" value={keyName} onChange={(e) => setKeyName(e.target.value)} />
-        <button style={btn} disabled={busy || !keyProjectId} onClick={generateKey}>Generate key</button>
+        <input className="field" placeholder="Key name — e.g. Rang Tarang app" value={keyName} onChange={(e) => setKeyName(e.target.value)} />
+        <button className="btn" disabled={busy || !keyProjectId} onClick={generateKey}>Generate key</button>
         {lastGeneratedKey && (
-          <div style={{ marginTop: 10, padding: 10, background: "#052", borderRadius: 6, wordBreak: "break-all" }}>
-            ⚠️ Copy now, shown only once:<br /><code>{lastGeneratedKey}</code>
+          <div className="keybox">
+            <span className="label">Copy now — shown once only</span>
+            {lastGeneratedKey}
           </div>
         )}
       </div>
 
-      <div style={box}>
-        <h3>📋 Active keys</h3>
-        {keys.length === 0 && <p>None yet.</p>}
+      <div className="card">
+        <h3>Active keys</h3>
+        {keys.length === 0 && <div className="empty">No keys yet.</div>}
         {keys.map((k) => (
-          <div key={k.keyHash} style={{ padding: 8, borderBottom: "1px solid #333", opacity: k.revoked ? 0.4 : 1 }}>
-            <b>{k.name}</b> → {k.projectId} {k.revoked && "(revoked)"}
-            {!k.revoked && (
-              <button style={{ ...btn, background: "#552222", marginLeft: 8, padding: "4px 8px" }} onClick={() => revoke(k.keyHash)}>Revoke</button>
+          <div className="row" key={k.keyHash}>
+            <div>
+              <div className="row-title">{k.name}</div>
+              <div className="row-sub">{k.projectId}</div>
+            </div>
+            {k.revoked ? (
+              <span className="badge off">revoked</span>
+            ) : (
+              <button className="btn danger-ghost" onClick={() => revoke(k.keyHash)}>Revoke</button>
             )}
           </div>
         ))}
       </div>
+
+      <button className="btn ghost" onClick={lock}>Lock dashboard</button>
     </div>
   );
 }

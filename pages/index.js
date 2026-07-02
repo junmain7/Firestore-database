@@ -1,9 +1,22 @@
 export default function Home() {
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif", padding: 24, background: "#000", color: "#fff", minHeight: "100vh" }}>
-      <h1>🔥 Firebase Gateway</h1>
-      <p>Your personal multi-project Firebase backend, exposed as one API.</p>
-      <a href="/dashboard" style={{ color: "#4f7cff" }}>Go to Dashboard →</a>
+    <div className="wrap">
+      <div className="topbar">
+        <span className="dot" />
+        <span className="brand">firebase-gateway</span>
+      </div>
+
+      <div className="card">
+        <h3>Status</h3>
+        <p style={{ margin: "0 0 4px", fontSize: 14 }}>Gateway is running.</p>
+        <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+          One API for every Firebase project you've registered — Firestore, Auth, and Storage.
+        </p>
+      </div>
+
+      <a href="/dashboard" className="btn" style={{ display: "block", textAlign: "center", textDecoration: "none", boxSizing: "border-box" }}>
+        Open dashboard →
+      </a>
     </div>
   );
 }
